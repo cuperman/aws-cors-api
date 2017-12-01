@@ -1,17 +1,17 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Simple API
+Description: AWS REST API with CORS
 
 Outputs:
 
   StackRegion:
     Value: !Ref AWS::Region
-  PersonTableName:
-    Value: !Ref PersonTable
-  PeopleFnCreateArn:
-    Value: !GetAtt PeopleFnCreate.Arn
-  PeopleFnIndexArn:
-    Value: !GetAtt PeopleFnIndex.Arn
+  ItemTableName:
+    Value: !Ref ItemTable
+  ItemsFnCreateArn:
+    Value: !GetAtt ItemsFnCreate.Arn
+  ItemsFnIndexArn:
+    Value: !GetAtt ItemsFnIndex.Arn
 
 Resources:
 
@@ -19,7 +19,7 @@ Resources:
   ## TABLES ##
   ############
 
-  PersonTable:
+  ItemTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
       PrimaryKey:
@@ -30,51 +30,51 @@ Resources:
   ## Functions ##
   ###############
 
-  PeopleFnCreate:
+  ItemsFnCreate:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handlers/people.create
+      Handler: handlers/items.create
       Runtime: nodejs6.10
-      CodeUri: ./package/simple_api.zip
+      CodeUri: ./package/aws-cors-api.zip
       Policies: AmazonDynamoDBFullAccess
       Environment:
         Variables:
-          PERSON_TABLE: !Ref PersonTable
+          ITEM_TABLE: !Ref ItemTable
 
-  PeopleFnIndex:
+  ItemsFnIndex:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handlers/people.index
+      Handler: handlers/items.index
       Runtime: nodejs6.10
-      CodeUri: ./package/simple_api.zip
+      CodeUri: ./package/aws-cors-api.zip
       Policies: AmazonDynamoDBFullAccess
       Environment:
         Variables:
-          PERSON_TABLE: !Ref PersonTable
+          ITEM_TABLE: !Ref ItemTable
 
   #########
   ## API ##
   #########
 
-  PeopleApi:
+  ItemsApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Name: Person API
+      Name: Items API
 
-  PeopleCollection:
+  ItemsCollection:
     Type: AWS::ApiGateway::Resource
     Properties:
-      PathPart: people
-      RestApiId: !Ref PeopleApi
-      ParentId: !GetAtt PeopleApi.RootResourceId
+      PathPart: items
+      RestApiId: !Ref ItemsApi
+      ParentId: !GetAtt ItemsApi.RootResourceId
 
-  PeopleCollectionPost:
+  ItemsCollectionPost:
     Type: AWS::ApiGateway::Method
     Properties:
       AuthorizationType: NONE
       HttpMethod: POST
-      RestApiId: !Ref PeopleApi
-      ResourceId: !Ref PeopleCollection
+      RestApiId: !Ref ItemsApi
+      ResourceId: !Ref ItemsCollection
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
@@ -87,16 +87,16 @@ Resources:
             - ':'
             - !Ref AWS::AccountId
             - ':function:'
-            - !Ref PeopleFnCreate
+            - !Ref ItemsFnCreate
             - '/invocations'
 
-  PeopleCollectionGet:
+  ItemsCollectionGet:
     Type: AWS::ApiGateway::Method
     Properties:
       AuthorizationType: NONE
       HttpMethod: GET
-      RestApiId: !Ref PeopleApi
-      ResourceId: !Ref PeopleCollection
+      RestApiId: !Ref ItemsApi
+      ResourceId: !Ref ItemsCollection
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: GET
@@ -109,5 +109,5 @@ Resources:
             - ':'
             - !Ref AWS::AccountId
             - ':function:'
-            - !Ref PeopleFnIndex
+            - !Ref ItemsFnIndex
             - '/invocations'

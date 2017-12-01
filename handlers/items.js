@@ -1,7 +1,9 @@
 const AWS = require('aws-sdk');
-const PersonTable = process.env.PERSON_TABLE;
+
+const ITEM_TABLE = process.env.ITEM_TABLE;
 
 const OK = 200;
+const CREATED = 201;
 const NOT_IMPLEMENTED = 501;
 
 function documentClient() {
@@ -11,17 +13,17 @@ function documentClient() {
 exports.create = (event, context, callback) => {
   const doc = documentClient();
   const body = JSON.parse(event.body);
-  const person = body.person;
+  const item = body.item;
 
   doc.put({
-    TableName: PersonTable,
-    Item: person
+    TableName: ITEM_TABLE,
+    Item: item
   }, (err, data) => {
     if (err) {
       callback(err);
     } else {
       callback(null, {
-        statusCode: OK,
+        statusCode: CREATED,
         headers: {
           'Content-Type': 'application/json'
         },
@@ -35,7 +37,7 @@ exports.index = (event, context, callback) => {
   const doc = documentClient();
 
   doc.scan({
-    TableName: PersonTable
+    TableName: ITEM_TABLE
   }, (err, data) => {
     if (err) {
       callback(err);

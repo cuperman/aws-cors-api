@@ -1,1 +1,1 @@
-exports.people = require('./handlers/people');
+exports.items = require('./handlers/items');
