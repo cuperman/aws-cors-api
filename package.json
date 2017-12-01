@@ -1,0 +1,19 @@
+{
+  "name": "simple_api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm run build:clean && npm run build:package && npm run build:zip",
+    "build:clean": "rm -rf ./package/*",
+    "build:package": "mkdir -p ./package/simple_api && cp -r ./handlers ./index.js ./package.json ./package/simple_api",
+    "build:zip": "pushd ./package/simple_api  && zip -r ../simple_api.zip * && popd",
+    "deploy": "npm run deploy:package && npm run deploy:create && npm run deploy:describe",
+    "deploy:package": "aws cloudformation package --template-file ./template.yaml --s3-bucket cloudformation-packages --output-template-file ./package/template.yaml",
+    "deploy:create": "aws cloudformation deploy --template-file ./package/template.yaml --stack-name simple-api --capabilities CAPABILITY_IAM",
+    "deploy:describe": "aws cloudformation describe-stacks --stack-name simple-api",
+    "deploy:destroy": "aws cloudformation delete-stack --stack-name simple-api"
+  },
+  "author": "Jeff Cooper",
+  "license": "MIT"
+}

@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Simple API
+
+Outputs:
+
+  StackRegion:
+    Value: !Ref AWS::Region
+  PersonTableName:
+    Value: !Ref PersonTable
+  PeopleFnCreateArn:
+    Value: !GetAtt PeopleFnCreate.Arn
+  PeopleFnIndexArn:
+    Value: !GetAtt PeopleFnIndex.Arn
+
+Resources:
+
+  ############
+  ## TABLES ##
+  ############
+
+  PersonTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: Name
+        Type: String
+
+  ###############
+  ## Functions ##
+  ###############
+
+  PeopleFnCreate:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/people.create
+      Runtime: nodejs6.10
+      CodeUri: ./package/simple_api.zip
+      Policies: AmazonDynamoDBFullAccess
+      Environment:
+        Variables:
+          PERSON_TABLE: !Ref PersonTable
+
+  PeopleFnIndex:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/people.index
+      Runtime: nodejs6.10
+      CodeUri: ./package/simple_api.zip
+      Policies: AmazonDynamoDBFullAccess
+      Environment:
+        Variables:
+          PERSON_TABLE: !Ref PersonTable
+
+  #########
+  ## API ##
+  #########
+
+  PeopleApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: Person API
+
+  PeopleCollection:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      PathPart: people
+      RestApiId: !Ref PeopleApi
+      ParentId: !GetAtt PeopleApi.RootResourceId
+
+  PeopleCollectionPost:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      RestApiId: !Ref PeopleApi
+      ResourceId: !Ref PeopleCollection
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Join
+          - ''
+          - - 'arn:aws:apigateway:'
+            - !Ref AWS::Region
+            - ':lambda:path/2015-03-31/functions/arn:aws:lambda:'
+            - !Ref AWS::Region
+            - ':'
+            - !Ref AWS::AccountId
+            - ':function:'
+            - !Ref PeopleFnCreate
+            - '/invocations'
+
+  PeopleCollectionGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      RestApiId: !Ref PeopleApi
+      ResourceId: !Ref PeopleCollection
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: GET
+        Uri: !Join
+          - ''
+          - - 'arn:aws:apigateway:'
+            - !Ref AWS::Region
+            - ':lambda:path/2015-03-31/functions/arn:aws:lambda:'
+            - !Ref AWS::Region
+            - ':'
+            - !Ref AWS::AccountId
+            - ':function:'
+            - !Ref PeopleFnIndex
+            - '/invocations'
