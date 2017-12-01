@@ -10,7 +10,3 @@ Requires aws client utility (brew install awsclient)
 npm run build
 npm run deploy
 ```
-
-# TODO
-
-* API Gateway methods do not have permissions to execute Lambda functions
