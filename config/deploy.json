@@ -1,0 +1,5 @@
+{
+  "PROFILE": "jeff",
+  "S3_BUCKET": "cloudformation-packages",
+  "STACK_NAME": "aws-cors-api"
+}
