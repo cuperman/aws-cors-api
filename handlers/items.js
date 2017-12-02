@@ -38,6 +38,14 @@ function attributeUpdates(attributes = {}) {
   return updates;
 }
 
+exports.preflight = (event, context, callback) => {
+  callback(null, jsonResponse(OK, '', {
+    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key',
+    'Access-Control-Allow-Methods': '*',
+    'Access-Control-Allow-Origin': '*'
+  }));
+};
+
 exports.create = (event, context, callback) => {
   const doc = documentClient();
   const body = JSON.parse(event.body);
