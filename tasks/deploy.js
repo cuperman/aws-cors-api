@@ -1,10 +1,14 @@
 const gulp = require('gulp');
 const shell = require('gulp-shell');
+const config = require('../config/deploy');
 
-const S3_BUCKET = 'cloudformation-packages';
+// TODO: use profile for aws commands
+const PROFILE = config.PROFILE;
+const S3_BUCKET = config.S3_BUCKET;
+const STACK_NAME = config.STACK_NAME || 'aws-cors-api';
+
 const TEMPLATE_FILE = 'template.yaml';
 const TEMPLATE_OUTPUT_FILE = 'package/template.yaml';
-const STACK_NAME = 'aws-cors-api';
 
 module.exports = function() {
   gulp.task('deploy:package', shell.task([

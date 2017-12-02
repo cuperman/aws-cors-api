@@ -1,2 +1,2 @@
-require('./gulp/tasks/build')();
-require('./gulp/tasks/deploy')();
+require('./tasks/build')();
+require('./tasks/deploy')();
