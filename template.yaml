@@ -12,6 +12,8 @@ Outputs:
     Value: !GetAtt ItemsFnCreate.Arn
   ItemsFnIndexArn:
     Value: !GetAtt ItemsFnIndex.Arn
+  InvokeUrlProd:
+    Value: !Sub https://${AwsCorsApi}.execute-api.${AWS::Region}.amazonaws.com/prod
 
 Resources:
 
@@ -283,3 +285,23 @@ Resources:
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${AwsCorsApi}/*/DELETE/items/*
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt ItemsFnDestroy.Arn
+
+
+  #################
+  ## Deployments ##
+  #################
+
+  DeployAwsCorsApi:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref AwsCorsApi
+      StageName: prod
+    DependsOn:
+      - ItemsOptions
+      - ItemsPost
+      - ItemsGet
+      - ItemsMemberOptions
+      - ItemsMemberGet
+      - ItemsMemberPut
+      - ItemsMemberPatch
+      - ItemsMemberDelete
