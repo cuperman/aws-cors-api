@@ -4,10 +4,38 @@ const ITEM_TABLE = process.env.ITEM_TABLE;
 
 const OK = 200;
 const CREATED = 201;
-const NOT_IMPLEMENTED = 501;
+const NO_CONTENT = 204;
+const INTERNAL_SERVER_ERROR = 500;
 
 function documentClient() {
   return new AWS.DynamoDB.DocumentClient();
+}
+
+function jsonResponse(statusCode = 200, body = '', headers = {}) {
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*'
+  };
+
+  return {
+    statusCode: statusCode,
+    body: body ? JSON.stringify(body) : '',
+    headers: Object.assign({}, defaultHeaders, headers)
+  };
+}
+
+function attributeUpdates(attributes = {}) {
+  let updates = {};
+
+  Object.keys(attributes).forEach(key => {
+    const value = attributes[key];
+    updates[key] = {
+      Action: 'PUT',
+      Value: value
+    };
+  });
+
+  return updates;
 }
 
 exports.create = (event, context, callback) => {
@@ -20,15 +48,9 @@ exports.create = (event, context, callback) => {
     Item: item
   }, (err, data) => {
     if (err) {
-      callback(err);
+      callback(null, jsonResponse(INTERNAL_SERVER_ERROR, err));
     } else {
-      callback(null, {
-        statusCode: CREATED,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
+      callback(null, jsonResponse(CREATED, data));
     }
   });
 };
@@ -40,33 +62,66 @@ exports.index = (event, context, callback) => {
     TableName: ITEM_TABLE
   }, (err, data) => {
     if (err) {
-      callback(err);
+      callback(null, jsonResponse(INTERNAL_SERVER_ERROR, err));
     } else {
-      callback(null, {
-        statusCode: OK,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
+      callback(null, jsonResponse(OK, data));
     }
   });
 };
 
 exports.show = (event, context, callback) => {
-  callback(null, {
-    statusCode: NOT_IMPLEMENTED
+  const doc = documentClient();
+  const name = event.pathParameters.itemName;
+
+  doc.get({
+    TableName: ITEM_TABLE,
+    Key: {
+      Name: name
+    }
+  }, (err, data) => {
+    if (err) {
+      callback(null, jsonResponse(INTERNAL_SERVER_ERROR, err));
+    } else {
+      callback(null, jsonResponse(OK, data));
+    }
   });
 };
 
 exports.update = (event, context, callback) => {
-  callback(null, {
-    statusCode: NOT_IMPLEMENTED
+  const doc = documentClient();
+  const name = event.pathParameters.itemName;
+  const body = JSON.parse(event.body);
+  const attributes = body.item;
+
+  doc.update({
+    TableName: ITEM_TABLE,
+    Key: {
+      Name: name
+    },
+    AttributeUpdates: attributeUpdates(attributes)
+  }, (err, data) => {
+    if (err) {
+      callback(null, jsonResponse(INTERNAL_SERVER_ERROR, err));
+    } else {
+      callback(null, jsonResponse(OK, data));
+    }
   });
 };
 
-exports.delete = (event, context, callback) => {
-  callback(null, {
-    statusCode: NOT_IMPLEMENTED
+exports.destroy = (event, context, callback) => {
+  const doc = documentClient();
+  const name = event.pathParameters.itemName;
+
+  doc.delete({
+    TableName: ITEM_TABLE,
+    Key: {
+      Name: name
+    }
+  }, (err) => {
+    if (err) {
+      callback(null, jsonResponse(INTERNAL_SERVER_ERROR, err));
+    } else {
+      callback(null, jsonResponse(NO_CONTENT));
+    }
   });
 };
