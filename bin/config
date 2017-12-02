@@ -1,0 +1,76 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const inquirer = require('inquirer');
+
+const CONFIG_FILE = 'config.json';
+
+const AWS_PROFILE = 'aws_profile';
+const S3_BUCKET = 's3_bucket';
+const STACK_NAME = 'stack_name';
+
+const DEFAULT_AWS_PROFILE = 'default';
+const DEFAULT_S3_BUCKET = 'my-bucket';
+const DEFAULT_STACK_NAME = path.basename(process.cwd());
+
+function readConfig(filename) {
+  try {
+    const json = fs.readFileSync(filename);
+    return JSON.parse(json);
+  } catch(err) {
+    return null;
+  }
+}
+
+function writeConfig(filename, config = {}) {
+  const json = JSON.stringify(config, null, 2);
+  return fs.writeFileSync(filename, json);
+}
+
+function updateConfig(config = {}) {
+  inquirer.prompt([{
+    type: 'input',
+    name: AWS_PROFILE,
+    message: 'AWS profile for CLI',
+    default: DEFAULT_AWS_PROFILE,
+    when: () => !config[AWS_PROFILE]
+  }, {
+    type: 'input',
+    name: S3_BUCKET,
+    message: 'S3 bucket to upload package',
+    default: DEFAULT_S3_BUCKET,
+    when: () => !config[S3_BUCKET]
+  }, {
+    type: 'input',
+    name: STACK_NAME,
+    message: 'Cloudformation stack name',
+    default: DEFAULT_STACK_NAME,
+    when: () => !config[STACK_NAME]
+  }]).then(answers => {
+    writeConfig(CONFIG_FILE, Object.assign({}, config, answers));
+  });
+}
+
+function listConfig(config = {}, attribute) {
+  console.log(config[attribute]);
+}
+
+const command = process.argv[2];
+const attribute = process.argv[3];
+
+if (!command || command === 'update') {
+  updateConfig(readConfig(CONFIG_FILE) || {});
+} else if (command === 'redo') {
+  updateConfig({});
+} else if (command === 'list') {
+  if (attribute) {
+    listConfig(readConfig(CONFIG_FILE) || {}, attribute);
+  } else {
+    console.error(`Specify attribute to list`);
+    process.exit(1);
+  }
+} else {
+  console.error(`Unknown command: ${command}`);
+  process.exit(1);
+}
