@@ -12,8 +12,6 @@ Outputs:
     Value: !GetAtt ItemsFnCreate.Arn
   ItemsFnIndexArn:
     Value: !GetAtt ItemsFnIndex.Arn
-  InvokeUrlProd:
-    Value: !Sub https://${AwsCorsApi}.execute-api.${AWS::Region}.amazonaws.com/prod
 
 Resources:
 
@@ -32,6 +30,28 @@ Resources:
   ## Functions ##
   ###############
 
+  ItemsFnPreflight:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/items.preflight
+      Runtime: nodejs6.10
+      CodeUri: ./package/aws-cors-api.zip
+      Policies: AmazonDynamoDBFullAccess
+      Environment:
+        Variables:
+          ITEM_TABLE: !Ref ItemTable
+      Events:
+        OptionsItems:
+          Type: Api
+          Properties:
+            Method: OPTIONS
+            Path: /items
+        OptionsItem:
+          Type: Api
+          Properties:
+            Method: OPTIONS
+            Path: /items/{itemName}
+
   ItemsFnCreate:
     Type: AWS::Serverless::Function
     Properties:
@@ -42,6 +62,12 @@ Resources:
       Environment:
         Variables:
           ITEM_TABLE: !Ref ItemTable
+      Events:
+        PostItems:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /items
 
   ItemsFnIndex:
     Type: AWS::Serverless::Function
@@ -53,6 +79,12 @@ Resources:
       Environment:
         Variables:
           ITEM_TABLE: !Ref ItemTable
+      Events:
+        GetItems:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /items
 
   ItemsFnShow:
     Type: AWS::Serverless::Function
@@ -64,6 +96,12 @@ Resources:
       Environment:
         Variables:
           ITEM_TABLE: !Ref ItemTable
+      Events:
+        GetItem:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /items/{itemName}
 
   ItemsFnUpdate:
     Type: AWS::Serverless::Function
@@ -75,6 +113,17 @@ Resources:
       Environment:
         Variables:
           ITEM_TABLE: !Ref ItemTable
+      Events:
+        PutItem:
+          Type: Api
+          Properties:
+            Method: PUT
+            Path: /items/{itemName}
+        PatchItem:
+          Type: Api
+          Properties:
+            Method: PATCH
+            Path: /items/{itemName}
 
   ItemsFnDestroy:
     Type: AWS::Serverless::Function
@@ -86,222 +135,9 @@ Resources:
       Environment:
         Variables:
           ITEM_TABLE: !Ref ItemTable
-
-  #########
-  ## API ##
-  #########
-
-  AwsCorsApi:
-    Type: AWS::ApiGateway::RestApi
-    Properties:
-      Name: AWS CORS API
-
-  ItemsResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      PathPart: items
-      RestApiId: !Ref AwsCorsApi
-      ParentId: !GetAtt AwsCorsApi.RootResourceId
-
-  ItemsMemberResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      PathPart: '{itemName}'
-      RestApiId: !Ref AwsCorsApi
-      ParentId: !Ref ItemsResource
-
-  ItemsOptions:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: OPTIONS
-      RestApiId: !Ref AwsCorsApi
-      ResourceId: !Ref ItemsResource
-      Integration:
-        Type: MOCK
-        RequestTemplates:
-          application/json: '{"statusCode": 200}'
-        IntegrationResponses:
-          - StatusCode: 200
-            ResponseParameters:
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
-              method.response.header.Access-Control-Allow-Methods: "'*'"
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-      MethodResponses:
-        - StatusCode: 200
-          ResponseModels:
-            application/json: Empty
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: false
-            method.response.header.Access-Control-Allow-Methods: false
-            method.response.header.Access-Control-Allow-Origin: false
-
-  ItemsPost:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: POST
-      RestApiId: !Ref AwsCorsApi
-      ResourceId: !Ref ItemsResource
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ItemsFnCreate.Arn}/invocations
-
-  ItemsGet:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: GET
-      RestApiId: !Ref AwsCorsApi
-      ResourceId: !Ref ItemsResource
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ItemsFnIndex.Arn}/invocations
-
-  ItemsMemberOptions:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: OPTIONS
-      RestApiId: !Ref AwsCorsApi
-      ResourceId: !Ref ItemsMemberResource
-      Integration:
-        Type: MOCK
-        RequestTemplates:
-          application/json: '{"statusCode": 200}'
-        IntegrationResponses:
-          - StatusCode: 200
-            ResponseParameters:
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
-              method.response.header.Access-Control-Allow-Methods: "'*'"
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-      MethodResponses:
-        - StatusCode: 200
-          ResponseModels:
-            application/json: Empty
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: false
-            method.response.header.Access-Control-Allow-Methods: false
-            method.response.header.Access-Control-Allow-Origin: false
-
-  ItemsMemberGet:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: GET
-      RestApiId: !Ref AwsCorsApi
-      ResourceId: !Ref ItemsMemberResource
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ItemsFnShow.Arn}/invocations
-
-  ItemsMemberPut:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: PUT
-      RestApiId: !Ref AwsCorsApi
-      ResourceId: !Ref ItemsMemberResource
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ItemsFnUpdate.Arn}/invocations
-
-  ItemsMemberPatch:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: PATCH
-      RestApiId: !Ref AwsCorsApi
-      ResourceId: !Ref ItemsMemberResource
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ItemsFnUpdate.Arn}/invocations
-
-  ItemsMemberDelete:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: DELETE
-      RestApiId: !Ref AwsCorsApi
-      ResourceId: !Ref ItemsMemberResource
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ItemsFnDestroy.Arn}/invocations
-
-  #################
-  ## Permissions ##
-  #################
-
-  ItemsPostInvokeItemsFnCreate:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${AwsCorsApi}/*/POST/items
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt ItemsFnCreate.Arn
-
-  ItemsGetInvokeItemsFnIndex:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${AwsCorsApi}/*/GET/items
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt ItemsFnIndex.Arn
-
-  ItemsMemberGetInvokeItemsFnShow:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${AwsCorsApi}/*/GET/items/*
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt ItemsFnShow.Arn
-
-  ItemsMemberPutInvokeItemsFnUpdate:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${AwsCorsApi}/*/PUT/items/*
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt ItemsFnUpdate.Arn
-
-  ItemsMemberPatchInvokeItemsUpdate:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${AwsCorsApi}/*/PATCH/items/*
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt ItemsFnUpdate.Arn
-
-  ItemsMemberDeleteInvokeItemsFnDestroy:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${AwsCorsApi}/*/DELETE/items/*
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt ItemsFnDestroy.Arn
-
-
-  #################
-  ## Deployments ##
-  #################
-
-  DeployAwsCorsApi:
-    Type: AWS::ApiGateway::Deployment
-    Properties:
-      RestApiId: !Ref AwsCorsApi
-      StageName: prod
-    DependsOn:
-      - ItemsOptions
-      - ItemsPost
-      - ItemsGet
-      - ItemsMemberOptions
-      - ItemsMemberGet
-      - ItemsMemberPut
-      - ItemsMemberPatch
-      - ItemsMemberDelete
+      Events:
+        DeleteItem:
+          Type: Api
+          Properties:
+            Method: DELETE
+            Path: /items/{itemName}
