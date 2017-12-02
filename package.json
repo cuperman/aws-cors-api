@@ -7,7 +7,7 @@
     "build": "npm run build:clean && npm run build:package && npm run build:zip",
     "build:clean": "rm -rf ./package/*",
     "build:package": "mkdir -p ./package/aws-cors-api && cp -r ./handlers ./index.js ./package.json ./package/aws-cors-api",
-    "build:zip": "pushd ./package/aws-cors-api  && zip -r ../aws-cors-api.zip * && popd",
+    "build:zip": "pushd ./package/aws-cors-api && zip -r ../aws-cors-api.zip * && popd",
     "deploy": "npm run deploy:package && npm run deploy:create && npm run deploy:describe",
     "deploy:package": "aws cloudformation package --template-file ./template.yaml --s3-bucket cloudformation-packages --output-template-file ./package/template.yaml",
     "deploy:create": "aws cloudformation deploy --template-file ./package/template.yaml --stack-name aws-cors-api --capabilities CAPABILITY_IAM",
@@ -15,5 +15,8 @@
     "deploy:destroy": "aws cloudformation delete-stack --stack-name aws-cors-api"
   },
   "author": "Jeff Cooper",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "inquirer": "^4.0.1"
+  }
 }
